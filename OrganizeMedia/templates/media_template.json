@@ -1,0 +1,25 @@
+{
+    "media_id": "???",
+    "sampling_date": "???",
+
+    "backtrace":{
+        "field_id": "???",
+        "section_id": "???",
+        "plant_id": "???"
+    },
+
+    "media_description": {
+        "adjuster_defoliation": "???",
+        "LeafScan_defoliation": "???",
+        
+        "leaf_number": "???",
+        "growth_stage": "???",
+
+        "notes": "???"
+    },
+
+    "private_information": {
+        "gps_center": ["???", "???"],
+        "private_notes": "???"
+    }
+}

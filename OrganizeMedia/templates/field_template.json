@@ -1,0 +1,34 @@
+{
+    "field_id": "???",
+    "sampling_date": "???",
+
+    "field_description": 
+    {
+        "state": "???",
+        "notes": "???"
+    },  
+
+    "private_information": {
+        "name": "???",
+        "full_name": "???",
+
+        "owner_contact": "???",
+
+        "gps_center": ["???", "???"], 
+        "full_gps_polygon": [
+            ["???", "???"],
+            ["???", "???"],
+            ["???", "???"],
+            ["???", "???"]
+        ],
+
+        "private_notes": "???"
+    },
+
+    "field_layout": 
+    {
+        "rows": "???",
+        "columns": "???",
+        "plant_spacing_m": "???"
+    }
+}
