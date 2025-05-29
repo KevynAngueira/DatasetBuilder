@@ -69,7 +69,8 @@ def get_padded_id(template_key, pad):
 def strip_private_info(entry):
     return {k: v for k, v in entry.items() if k != "private_information"}
     
-def prompt_or_load_entry(template_key, template_path, pad, priv_base_dir, pub_base_dir, ids):
+def prompt_or_load_non_final(template_params, priv_base_dir, pub_base_dir, ids):
+    template_key, template_path, pad = template_params
     priv_meta_file = priv_base_dir / f"{template_key}_metadata.json"
     pub_meta_file = pub_base_dir / f"{template_key}_metadata.json"
 
@@ -83,13 +84,70 @@ def prompt_or_load_entry(template_key, template_path, pad, priv_base_dir, pub_ba
     priv_metadata = load_json(priv_meta_file)
     pub_metadata = load_json(pub_meta_file)
 
-    entry_id = get_padded_id(template_key, pad)
-    entry_key = f"{template_key}_{entry_id}"
+    entry_id, entry_key, entry = prompt_or_load_entry(template_params, priv_metadata, ids)
+
     priv_entry_path = priv_base_dir / entry_key
     pub_entry_path = pub_base_dir / entry_key
 
+    if entry is not None:
+        priv_metadata[entry_key] = entry
+        pub_metadata[entry_key] = strip_private_info(entry)
+        save_json(priv_metadata, priv_meta_file)
+        save_json(pub_metadata, pub_meta_file)
+
+        priv_entry_path.mkdir(parents=True, exist_ok=True)
+        pub_entry_path.mkdir(parents=True, exist_ok=True)
+    
+    return entry_id, entry_key, priv_entry_path, pub_entry_path
+
+
+def prompt_or_load_final(template_params, priv_base_dir, pub_base_dir, ids, media_type=None):
+
+    media_type = 'img' if media_type is None or media_type == 'img' else "vid"
+    template_key, template_path, pad = template_params
+    template_key = f'{template_key}_{media_type}'
+
+    priv_meta_file = priv_base_dir / f"{template_key}_metadata.json"
+    pub_meta_file = pub_base_dir / f"{template_key}_metadata.json"
+
+    if not priv_meta_file.exists():
+        print(f"Creating new metadata file: {priv_meta_file}")
+        save_json({}, priv_meta_file)
+    if not pub_meta_file.exists():
+        print(f"Creating new metadata file: {pub_meta_file}")
+        save_json({}, pub_meta_file)
+
+    priv_metadata = load_json(priv_meta_file)
+    pub_metadata = load_json(pub_meta_file)
+
+    template_params = (template_key, template_path, pad) 
+    entry_id, entry_key, entry = prompt_or_load_entry(template_params, priv_metadata, ids)
+
+    priv_entry_path = priv_base_dir
+    pub_entry_path = pub_base_dir
+
+    if entry is not None:
+        priv_metadata[entry_key] = entry
+        pub_metadata[entry_key] = strip_private_info(entry)
+        save_json(priv_metadata, priv_meta_file)
+        save_json(pub_metadata, pub_meta_file)
+
+        priv_entry_path.mkdir(parents=True, exist_ok=True)
+        pub_entry_path.mkdir(parents=True, exist_ok=True)
+    
+    return entry_id, entry_key, priv_entry_path, pub_entry_path
+
+def prompt_or_load_entry(template_params, priv_metadata, ids):
+    template_key, template_path, pad = template_params
+
+    entry_id = get_padded_id(template_key, pad)
+    entry_key = f"{template_key}_{entry_id}"
+    
+    print(entry_key)
+
     if entry_key in priv_metadata:
-        print(f"{entry_key} exists. Continuing.")
+        print(f"{entry_key} exists. Skipping.")
+        entry = None
     else:
         choice = input("Entry not found. Use (t)emplate or (c)ustom entry? [t/c]: ").lower()
         if choice == 't':
@@ -100,16 +158,8 @@ def prompt_or_load_entry(template_key, template_path, pad, priv_base_dir, pub_ba
             template = load_json(template_path)
             template = populateEntryIds(template_key, entry_id, ids, template)
             entry = edit_json_template(template)
-
-        priv_metadata[entry_key] = entry
-        pub_metadata[entry_key] = strip_private_info(entry)
-        save_json(priv_metadata, priv_meta_file)
-        save_json(pub_metadata, pub_meta_file)
-
-        priv_entry_path.mkdir(parents=True, exist_ok=True)
-        pub_entry_path.mkdir(parents=True, exist_ok=True)
-
-    return entry_id, entry_key, priv_entry_path, pub_entry_path
+        
+    return entry_id, entry_key, entry
 
 def get_media_files():
     return sorted([f for f in NEW_MEDIA_DIR.glob("*.*") if f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.mp4']])
@@ -131,12 +181,17 @@ def main():
     ids = {}
 
     # Traverse all template levels including media
-    for key, template_path, pad in TEMPLATE_PATHS:
-        entry_id, entry_key, path_private, path_public = prompt_or_load_entry(key, template_path, pad, path_private, path_public, ids)
-        ids[key] = entry_id
-
+    for template_params in TEMPLATE_PATHS[:-1]:
+        entry_id, entry_key, path_private, path_public = prompt_or_load_non_final(template_params, path_private, path_public, ids)
+        ids[template_params[0]] = entry_id
+    
     media_type, prefix = ("videos", "vid") if selected_file.suffix.lower() == ".mp4" else ("images", "img")
-    media_filename = f"{selected_file.stem}_{ids['field']}_{ids['section']}_{ids['plant']}_{ids['media']}{selected_file.suffix}"
+
+    template_params = TEMPLATE_PATHS[-1]
+    entry_id, entry_key, path_private, path_public = prompt_or_load_final(template_params, path_private, path_public, ids, prefix)
+    ids[template_params[0]] = entry_id
+    
+    media_filename = f"{prefix}_{ids['field']}_{ids['section']}_{ids['plant']}_{ids['leaf']}{selected_file.suffix}"
 
     # Create final media directories
     private_dest = path_private / media_type
