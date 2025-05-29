@@ -1,5 +1,5 @@
 {
-    "media_id": "???",
+    "leaf_id": "???",
     "sampling_date": "???",
 
     "backtrace":{
@@ -8,7 +8,7 @@
         "plant_id": "???"
     },
 
-    "media_description": {
+    "leaf_description": {
         "adjuster_defoliation": "???",
         "LeafScan_defoliation": "???",
         
